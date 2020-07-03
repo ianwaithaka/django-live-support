@@ -2,7 +2,7 @@ try:
     import simplejson as json
 except ImportError:
     import json
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
@@ -78,15 +78,10 @@ def get_messages(request):
     chats = {}
     for k, v in request.GET.iteritems():
         alive = True
-        try:
-            messages = ChatMessage.objects.filter(chat__id=k)
-        except ValueError:
-            next
+        messages = ChatMessage.objects.filter(chat__id=k)
         if v:
-            try:
-                messages = messages.filter(id__gt=v)
-            except ValueError:
-                pass
+            messages = ChatMessage.objects.filter(chat__id=k, id__gt=v)
+
         # Check to see if the end user has recently checked for new messages
         # for this chat session by checking for the cache entry using the
         # chat id.  If they haven't asked for new messages in the past 30
@@ -237,10 +232,10 @@ def start_chat(request, support_group_id=None):
         chat.support_group_id = support_group_id
         chat.save()
         if admin_active:
-            request.session['chat_hash_key'] = chat.hash_key.hex
+            request.session['chat_hash_key'] = chat.hash_key
             return HttpResponseRedirect(reverse(
-                'client_chat',
-                args=[chat.hash_key,])
+                'live_support.views.client_chat',
+                args=[chat.hash_key, ])
             )
         else:
             return HttpResponse('Thank you for contacting us')

@@ -8,19 +8,11 @@ from django.core.cache import cache
 
 class SupportGroup(models.Model):
     name = models.CharField(_("name"), max_length=255)
-    agents = models.ManyToManyField(
-        User, blank=True, related_name='agent_support_groups'
-    )
-    supervisors = models.ManyToManyField(
-        User, blank=True, related_name='supervisor_support_groups'
-    )
+    agents = models.ManyToManyField(User, blank=True, related_name='agent_support_groups')
+    supervisors = models.ManyToManyField(User, blank=True, related_name='supervisor_support_groups')
 
     def __unicode__(self):
         return self.name
-
-    class Meta:
-        verbose_name = _('Support group')
-        verbose_name_plural = _('Support groups')
 
 
 class ChatManager(models.Manager):
@@ -38,7 +30,7 @@ class Chat(models.Model):
     agents = models.ManyToManyField(User, blank=True, related_name='chats')
     objects = models.Manager()
     active = ChatManager()
-    support_group = models.ForeignKey(SupportGroup, null=True, blank=True)
+    support_group = models.ForeignKey(SupportGroup, null=True, on_delete=models.SET_NULL)
 
     def __unicode__(self):
         return '%s: %s' % (self.started, self.name)
@@ -51,17 +43,15 @@ class Chat(models.Model):
         return cache.get('chat_%s' % self.id, 'inactive')
 
     class Meta:
-        permissions = (
-            ("chat_admin", "Chat Admin"),
-        )
-        verbose_name = _('Chat')
-        verbose_name_plural = _('Chats')
+            permissions = (
+                ("chat_admin", "Chat Admin"),
+            )
 
 
 class ChatMessage(models.Model):
-    chat = models.ForeignKey(Chat, related_name='messages')
+    chat = models.ForeignKey(Chat, related_name='messages', null=True, on_delete=models.SET_NULL)
     name = models.CharField(max_length=255, blank=True)
-    agent = models.ForeignKey(User, blank=True, null=True)
+    agent = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL)
     message = models.TextField()
     sent = models.DateTimeField(auto_now_add=True)
 
@@ -73,7 +63,3 @@ class ChatMessage(models.Model):
 
     def __unicode__(self):
         return '%s: %s' % (self.sent, self.message)
-
-    class Meta:
-        verbose_name = _('Chat message')
-        verbose_name_plural = _('Chat messages')
